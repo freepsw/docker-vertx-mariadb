@@ -1,0 +1,8 @@
+{
+  "http.port" : 8082,
+  "url": "jdbc:mariadb://172.16.118.131:3306/mysql",
+  "driver_class": "org.mariadb.jdbc.Driver",
+  "user": "root",
+  "password": "my-secret-pw",
+  "maxPoolSize" : 10
+}
