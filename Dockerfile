@@ -3,7 +3,7 @@ FROM vertx/vertx3
 
 # set the verticle class name and the jar file
 ENV VERTICLE_NAME io.vertx.blog.first.MyFirstVerticle
-ENV VERTICLE_FILE target/my-first-app-db-1.0-SNAPSHOT-fat.jar
+ENV VERTICLE_FILE 01.vertx-apps/target/my-first-app-db-1.0-SNAPSHOT-fat.jar
 
 # Set the location of the verticles
 ENV VERTICLE_HOME /usr/verticles
