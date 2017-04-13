@@ -4,5 +4,5 @@
   "driver_class": "org.mariadb.jdbc.Driver",
   "user": "root",
   "password": "my-secret-pw",
-  "maxPoolSize" : 10
+  "maxPoolSize" : 20
 }

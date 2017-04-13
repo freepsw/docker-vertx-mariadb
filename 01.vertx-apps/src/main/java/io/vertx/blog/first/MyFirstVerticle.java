@@ -10,6 +10,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.sql.UpdateResult;
 import io.vertx.ext.web.Router;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
  * implement them in JavaScript, Groovy or even Ruby.
  */
 public class MyFirstVerticle extends AbstractVerticle {
+
 
   private JDBCClient jdbc;
 
@@ -82,6 +84,7 @@ public class MyFirstVerticle extends AbstractVerticle {
     router.get("/api/whiskies/:id").handler(this::getOne);
     router.put("/api/whiskies/:id").handler(this::updateOne);
     router.delete("/api/whiskies/:id").handler(this::deleteOne);
+    router.get("/api/test").handler(this::testFun);
 
 
     // Create the HTTP server and pass the "accept" method to the request handler.
@@ -113,6 +116,7 @@ public class MyFirstVerticle extends AbstractVerticle {
 
   private void addOne(RoutingContext routingContext) {
     jdbc.getConnection(ar -> {
+      System.out.println("CONNECTION INSERT OK");
       // Read the request's content and create an instance of Whisky.
       final Whisky whisky = Json.decodeValue(routingContext.getBodyAsString(),
           Whisky.class);
@@ -128,12 +132,14 @@ public class MyFirstVerticle extends AbstractVerticle {
   }
 
   private void getOne(RoutingContext routingContext) {
+    System.out.println("[TEST ] ID = " + routingContext.request().getParam("id"));
     final String id = routingContext.request().getParam("id");
     if (id == null) {
       routingContext.response().setStatusCode(400).end();
     } else {
       jdbc.getConnection(ar -> {
         // Read the request's content and create an instance of Whisky.
+        System.out.println("CONNECTION SELECT OK");
         SQLConnection connection = ar.result();
         select(id, connection, result -> {
           if (result.succeeded()) {
@@ -192,6 +198,9 @@ public class MyFirstVerticle extends AbstractVerticle {
     jdbc.getConnection(ar -> {
       SQLConnection connection = ar.result();
       connection.query("SELECT * FROM Whisky", result -> {
+        System.out.println("[GetALL] NUMBER = " + result.result().getNumRows());
+        System.out.println("[GetALL] CONTENTS = " + result.result().getResults().get(0).encodePrettily());
+
         List<Whisky> whiskies = result.result().getRows().stream().map(Whisky::new).collect(Collectors.toList());
         routingContext.response()
             .putHeader("content-type", "application/json; charset=utf-8")
@@ -202,6 +211,7 @@ public class MyFirstVerticle extends AbstractVerticle {
   }
 
   private void createSomeData(AsyncResult<SQLConnection> result, Handler<AsyncResult<Void>> next, Future<Void> fut) {
+    System.out.println("CreateSomeData CALL!!");
     if (result.failed()) {
       fut.fail(result.cause());
     } else {
@@ -259,13 +269,19 @@ public class MyFirstVerticle extends AbstractVerticle {
   }
 
   private void select(String id, SQLConnection connection, Handler<AsyncResult<Whisky>> resultHandler) {
-    connection.queryWithParams("SELECT * FROM Whisky WHERE id=?", new JsonArray().add(id), ar -> {
+    System.out.println("[TEST]  SELECT REQURST !!!");
+    connection.queryWithParams("SELECT * FROM Whisky WHERE id=1", new JsonArray().add(id), ar -> {
       if (ar.failed()) {
         resultHandler.handle(Future.failedFuture("Whisky not found"));
       } else {
         if (ar.result().getNumRows() >= 1) {
+          System.out.println(ar.result().getResults().get(0).encodePrettily());
+          System.out.println(ar.result().getRows().get(0).fieldNames());
+          System.out.println(ar.result().getRows().get(0).encodePrettily());
+
           resultHandler.handle(Future.succeededFuture(new Whisky(ar.result().getRows().get(0))));
         } else {
+          System.out.println("Whisky is not found!!");
           resultHandler.handle(Future.failedFuture("Whisky not found"));
         }
       }
@@ -292,4 +308,43 @@ public class MyFirstVerticle extends AbstractVerticle {
         });
   }
 
+  private void testFun(RoutingContext routingContext) {
+    System.out.println("[TEST ] Test Function ");
+    routingContext.response().setStatusCode(400).end();
+/*      jdbc.getConnection(res -> {
+      if (res.succeeded()) {
+
+        SQLConnection connection = res.result();
+
+        connection.query("SELECT * FROM Whisky where id=52", res2 -> {
+          if (res2.succeeded()) {
+
+            ResultSet rs = res2.result();
+            for (JsonArray line : res2.result().getResults()) {
+              System.out.println(line.encode());
+            }
+          }
+        });
+      } else {
+        // Failed to get connection - deal with it
+      }
+          });*/
+//
+//        // Read the request's content and create an instance of Whisky.
+//        System.out.println("CONNECTION SELECT OK");
+//        SQLConnection connection = ar.result();
+//        select(id, connection, result -> {
+//          if (result.succeeded()) {
+//            routingContext.response()
+//                    .setStatusCode(200)
+//                    .putHeader("content-type", "application/json; charset=utf-8")
+//                    .end(Json.encodePrettily(result.result()));
+//          } else {
+//            routingContext.response()
+//                    .setStatusCode(404).end();
+//          }
+//          connection.close();
+//        });
+
+  }
 }

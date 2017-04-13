@@ -17,9 +17,10 @@ public class Whisky {
   }
 
   public Whisky(JsonObject json) {
-    this.name = json.getString("NAME");
-    this.origin = json.getString("ORIGIN");
-    this.id = json.getInteger("ID");
+    System.out.println("JSON : " + json.encodePrettily());
+    this.id = json.getInteger("id");
+    this.name = json.getString("name");
+    this.origin = json.getString("origin");
   }
 
   public Whisky() {
