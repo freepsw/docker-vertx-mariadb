@@ -10,7 +10,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
-import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.sql.UpdateResult;
 import io.vertx.ext.web.Router;
@@ -21,12 +20,16 @@ import io.vertx.ext.web.handler.StaticHandler;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+
 /**
  * This is a verticle. A verticle is a _Vert.x component_. This verticle is implemented in Java, but you can
  * implement them in JavaScript, Groovy or even Ruby.
  */
 public class MyFirstVerticle extends AbstractVerticle {
 
+  private static Logger logger = LoggerFactory.getLogger(MyFirstVerticle.class);
 
   private JDBCClient jdbc;
 
@@ -199,6 +202,8 @@ public class MyFirstVerticle extends AbstractVerticle {
       SQLConnection connection = ar.result();
       connection.query("SELECT * FROM Whisky", result -> {
         System.out.println("[GetALL] NUMBER = " + result.result().getNumRows());
+        logger.info("LOGGER INFO TEST!!");
+        logger.error("LOGGER ERROR TEST!!");
         System.out.println("[GetALL] CONTENTS = " + result.result().getResults().get(0).encodePrettily());
 
         List<Whisky> whiskies = result.result().getRows().stream().map(Whisky::new).collect(Collectors.toList());
