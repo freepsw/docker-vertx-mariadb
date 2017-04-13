@@ -22,4 +22,4 @@ COPY $VERTICLE_JDBC_FILE $VERTICLE_HOME/
 # -cp : set classpath of jar file
 WORKDIR $VERTICLE_HOME
 ENTRYPOINT ["sh", "-c"]
-CMD ["exec vertx run $VERTICLE_NAME -cp $VERTICLE_HOME/* --conf $VERTICLE_HOME/my-application-conf.json"]
+CMD ["exec vertx run $VERTICLE_NAME --conf $VERTICLE_HOME/my-application-conf.json"]
