@@ -1,6 +1,6 @@
 {
   "http.port": ${http.port},
-  "url": "jdbc:mariadb://172.16.118.131:3306/mysql",
+  "url": "jdbc:mariadb://some-mariadb:3306/mysql",
   "driver_class": "org.mariadb.jdbc.Driver",
   "user": "root",
   "password": "my-secret-pw"

@@ -12,6 +12,7 @@
  ```
  # 1) mariadb container 배포 (3306 port open) -> SQuirrelSQL로 조회하는 용도
  # 만약 docker vertx에서만 조회한다면 port를 open할 필요가 없다. (나중에 docker link옵션 활용)
+ # vert.x container에서 maridb container에 접속하기 위해서 some-mariadb 명칭으로 접근
  > docker run -p 3306:3306 --name some-mariadb -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mariadb:10.1
 
  # 2) connect to mariadb container
@@ -37,6 +38,9 @@
  > git clone https://github.com/freepsw/docker-vertx-mariadb.git
  > cd docker-vertx-mariadb/01.vertx-apps
 
+ # build an create fat jar file
+ > mvn clean package
+
  # download jar file for mariadb connection
  > mkdir lib
  > wget https://downloads.mariadb.com/Connectors/java/connector-java-1.5.5/mariadb-java-client-1.5.5.jar -P ./lib
@@ -49,22 +53,27 @@
  # Extend vert.x image
  FROM vertx/vertx3
 
- # Set the verticle class name and the jar file
+ # set the verticle class name and the jar file
  ENV VERTICLE_NAME io.vertx.blog.first.MyFirstVerticle
- ENV VERTICLE_FILE target/my-first-app-db-1.0-SNAPSHOT-fat.jar
+ ENV VERTICLE_FILE 01.vertx-apps/target/my-first-app-db-1.0-SNAPSHOT-fat.jar
+ ENV VERTICLE_CONF_FILE 01.vertx-apps/src/main/conf/my-application-conf.json
+ ENV VERTICLE_JDBC_FILE 01.vertx-apps/lib/mariadb-java-client-1.5.5.jar
 
  # Set the location of the verticles
  ENV VERTICLE_HOME /usr/verticles
+ ENV CLASSPATH "/usr/verticles/mariadb-java-client-1.5.5.jar:/usr/verticles/my-first-app-db-1.0-SNAPSHOT-fat.jar
 
  EXPOSE 8080
 
  # Copy your verticle to the container
  COPY $VERTICLE_FILE $VERTICLE_HOME/
+ COPY $VERTICLE_CONF_FILE $VERTICLE_HOME/
+ COPY $VERTICLE_JDBC_FILE $VERTICLE_HOME/
 
  # Launch the verticle
  WORKDIR $VERTICLE_HOME
  ENTRYPOINT ["sh", "-c"]
- CMD ["exec vertx run $VERTICLE_NAME -cp $VERTICLE_HOME/*"]
+ CMD ["exec vertx run $VERTICLE_NAME --conf $VERTICLE_HOME/my-application-conf.json"]
  ```
  - Builf docker image
  ```
@@ -86,10 +95,10 @@
 
  ```
  # 1) foregroud 실행
- > docker run -ti -p 8082:8082 freepsw/vertx-java
+ > docker run -ti -p 8082:8082 --link some-mariadb freepsw/vertx-java
 
  # 2) background 실행
- > docker run -d -ti -p 8082:8082 freepsw/vertx-java
+ > docker run -d -ti -p 8082:8082 --link some-mariadb freepsw/vertx-java
 
  # 2-1) conntainer에 접속하기.
  # 실행중인 container id를 조회하고, 이를 이용해 접속
@@ -118,3 +127,20 @@
   - “%u” a unique number to resolve conflicts
   - “%%” translates to a single percent sign “%”
   ```
+
+### 2) config.json
+ - mariadb 접속과 관련된 설정을 관리
+ - vert.x container 실행시 --link로 some-mariadb를 연결했다면,
+ - url의 ip를 아래와 같이 변경할 수 있다
+   * "url": "jdbc:mariadb://some-mariadb:3306/mysql"
+
+ ```
+ {
+   "http.port" : 8082,
+   "url": "jdbc:mariadb://172.16.118.131:3306/mysql",
+   "driver_class": "org.mariadb.jdbc.Driver",
+   "user": "root",
+   "password": "my-secret-pw",
+   "maxPoolSize" : 20
+ }
+ ```
