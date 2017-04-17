@@ -11,7 +11,7 @@ ENV VERTICLE_JDBC_FILE 01.vertx-apps/lib/mariadb-java-client-1.5.5.jar
 ENV VERTICLE_HOME /usr/verticles
 ENV CLASSPATH "/usr/verticles/mariadb-java-client-1.5.5.jar:/usr/verticles/my-first-app-db-1.0-SNAPSHOT-fat.jar
 
-EXPOSE 8080
+EXPOSE 8082
 
 # Copy your verticle to the container
 COPY $VERTICLE_FILE $VERTICLE_HOME/

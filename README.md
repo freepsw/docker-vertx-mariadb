@@ -148,7 +148,6 @@
 
 
 
-
 # Etc
 
 
@@ -172,14 +171,14 @@
 
  # copy dump file to localhost
  # 위에서 조회한 container id(a9ea3800efd7)로 복사할 container를 지정
- > docker cp a9ea3800efd7:/root/test_db.sql /home/rts/dump
+ > docker cp a9ea3800efd7:/root/test_db.sql /home/rts/apps/docker-vertx-mariadb/verticle_data
  ```
 
 ### 3) Import dump file(test_db.sql) into maridb when maridb is initialized
  ```
  # 만약 database를 생성해야 한다면,
  # MYSQL_DATABASE 변수에 생성할 database명을 입력한다. (여기서는 test_db가 database명)
- > docker run -v /home/rts/apps/test/dump:/docker-entrypoint-initdb.d -p 3306:3306 --name some-mariadb -e MYSQL_ROOT_PASSWORD=my-secret-pw -e MYSQL_DATABASE=test_db  -d mariadb:10.1
+ > docker run -v <test_.sql 경로>:/docker-entrypoint-initdb.d -p 3306:3306 --name some-mariadb -e MYSQL_ROOT_PASSWORD=my-secret-pw -e MYSQL_DATABASE=test_db  -d mariadb:10.1
  ```
 
 
@@ -191,10 +190,14 @@
 - 그래서 자주 변경되는 file(.jar, .json ...)을 local directory에서 읽어오도록 변경
 - docker volum option 사용
 
-### 1) Dockerfile 에서 .jar/.json를 읽어오는 부분을 제거한다.
+### 1) 새로운 Dockerfile 생성 (Dockerfile_var)
+- Dockerfile 에서 .jar/.json를 읽어오는 부분을 제거
 - $VERTICLE_HOME의 경로에 있어야 할 파일들을 확인힌다. (jar, json, lib)
-
 ```
+ > cd docker-vertx-mariadb
+
+ > vi Dockerfile_var
+
 # Extend vert.x image
 FROM vertx/vertx3
 
@@ -222,14 +225,24 @@ CMD ["exec vertx run $VERTICLE_NAME --conf $VERTICLE_HOME/my-application-conf.js
  > cp 01.vertx-apps/src/main/conf/my-application-conf.json ./verticle_data
  > cp 01.vertx-apps/lib/mariadb-java-client-1.5.5.jar ./verticle_data
 ```
+- my-application-conf.json에서 jdbc설정을 변경한다.  (mysql -> test_db)
+{
+  "http.port" : 8082,
+  "url": "jdbc:mariadb://some-mariadb:3306/test_db",
+  "driver_class": "org.mariadb.jdbc.Driver",
+  "user": "root",
+  "password": "my-secret-pw",
+  "maxPoolSize" : 20
+}
 
-- d
- > docker build -t freepsw/vertx-java-var Dockerfile_var
-```
-```
 
+- docker image를 build한다.
+
+```
+ >  >  docker build -t freepsw/vertx-java-var -f Dockerfile_var .
+```
 
 - docker run 실행
 ```
- > docker run -ti -p 8082:8082 -v /home/rts/apps/docker-vertx-mariadb:/usr/verticles --link some-mariadb freepsw/vertx-java-var
+ > docker run -ti -p 8082:8082 -v ~/apps/docker-vertx-mariadb/verticle_data:/usr/verticles --link some-mariadb freepsw/vertx-java-var
 ```
