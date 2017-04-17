@@ -71,6 +71,7 @@
  COPY $VERTICLE_JDBC_FILE $VERTICLE_HOME/
 
  # Launch the verticle
+ # -cp : set classpath of jar file
  WORKDIR $VERTICLE_HOME
  ENTRYPOINT ["sh", "-c"]
  CMD ["exec vertx run $VERTICLE_NAME --conf $VERTICLE_HOME/my-application-conf.json"]
@@ -107,40 +108,128 @@
 
  ```
 
+### 3-3).  Vert.x configuration
+
+####  Log Properties (logging.properties)
+  - log configuration 위치
+   * src/main/resources/vertx-default-jul-logging.properties
+  - 주요 설정 파라미터
+   * java.util.logging.FileHandler.pattern : log 파일이 생성될 위치 및 파일명
+   * 아래와 같은 예약어를 사용 가능
+   ```
+   - “/” the local pathname separator
+   - “%t” the system temporary directory
+   - “%h” the value of the “user.home” system property
+   - “%g” the generation number to distinguish rotated logs
+   - “%u” a unique number to resolve conflicts
+   - “%%” translates to a single percent sign “%”
+   ```
+
+####  config.json
+  - mariadb 접속과 관련된 설정을 관리
+  - vert.x container 실행시 --link로 some-mariadb를 연결했다면,
+  - url의 ip를 아래와 같이 변경할 수 있다
+    * "url": "jdbc:mariadb://some-mariadb:3306/mysql"
+
+  ```
+  {
+    "http.port" : 8082,
+    "url": "jdbc:mariadb://172.16.118.131:3306/mysql",
+    "driver_class": "org.mariadb.jdbc.Driver",
+    "user": "root",
+    "password": "my-secret-pw",
+    "maxPoolSize" : 20
+  }
+  ```
+
 ## 4. Check using web browser
  - connnect to http://<ip>:8082/assets
 
 
 
-## Vert.x configuration
-### 1) Log Properties (logging.properties)
- - log configuration 위치
-  * src/main/resources/vertx-default-jul-logging.properties
- - 주요 설정 파라미터
-  * java.util.logging.FileHandler.pattern : log 파일이 생성될 위치 및 파일명
-  * 아래와 같은 예약어를 사용 가능
-  ```
-  - “/” the local pathname separator
-  - “%t” the system temporary directory
-  - “%h” the value of the “user.home” system property
-  - “%g” the generation number to distinguish rotated logs
-  - “%u” a unique number to resolve conflicts
-  - “%%” translates to a single percent sign “%”
-  ```
 
-### 2) config.json
- - mariadb 접속과 관련된 설정을 관리
- - vert.x container 실행시 --link로 some-mariadb를 연결했다면,
- - url의 ip를 아래와 같이 변경할 수 있다
-   * "url": "jdbc:mariadb://some-mariadb:3306/mysql"
 
+# Etc
+
+
+## 1. Database import to Mariadb container when container initialized
+- 많은 경우 application에 필요한 메타정보가 db에 저장되어 있어야 한다.
+- 따라서 db container가 구동되는 시점에 해당 정보를 함께 db에 import하도록 함.
+
+### 1) Dump database to file
+- Container에 import될 database를 dump하여 파일로 저장
  ```
- {
-   "http.port" : 8082,
-   "url": "jdbc:mariadb://172.16.118.131:3306/mysql",
-   "driver_class": "org.mariadb.jdbc.Driver",
-   "user": "root",
-   "password": "my-secret-pw",
-   "maxPoolSize" : 20
- }
+ > mysqldump -uroot -pmy-secret-pw test_db > test_db.sql
  ```
+
+### 2) Copy dump file(test_db.sql) to localhost
+- container에서 dump한 test_db.sql 파일을 lcoal directory로 복사한다.
+ ```
+ # container id 조회
+ > docker ps
+ CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                              NAMES
+ a9ea3800efd7        mariadb:10.1        "docker-entrypoint..."   8 hours ago         Up 8 hours          0.0.0.0:3306->3306/tcp             some-mariadb
+
+ # copy dump file to localhost
+ # 위에서 조회한 container id(a9ea3800efd7)로 복사할 container를 지정
+ > docker cp a9ea3800efd7:/root/test_db.sql /home/rts/dump
+ ```
+
+### 3) Import dump file(test_db.sql) into maridb when maridb is initialized
+ ```
+ # 만약 database를 생성해야 한다면,
+ # MYSQL_DATABASE 변수에 생성할 database명을 입력한다. (여기서는 test_db가 database명)
+ > docker run -v /home/rts/apps/test/dump:/docker-entrypoint-initdb.d -p 3306:3306 --name some-mariadb -e MYSQL_ROOT_PASSWORD=my-secret-pw -e MYSQL_DATABASE=test_db  -d mariadb:10.1
+ ```
+
+
+
+## 2. vert.x application 변경시 docker build 없이 docker run
+- vert.x jar , config.json 파일이 docker image에 포함되어 있어서 변경시 docker image를 다시 빌드해야 함.
+- 운영상황에서는 이 방식이 깔끔하고, 사용자의 실수가 없는 방식인데,
+- 테스트 단계에서는 수많은 변경사항이 발생하게 된다. (결국 docker build가 너무 많이 발생, 시간 소요)
+- 그래서 자주 변경되는 file(.jar, .json ...)을 local directory에서 읽어오도록 변경
+- docker volum option 사용
+
+### 1) Dockerfile 에서 .jar/.json를 읽어오는 부분을 제거한다.
+- $VERTICLE_HOME의 경로에 있어야 할 파일들을 확인힌다. (jar, json, lib)
+
+```
+# Extend vert.x image
+FROM vertx/vertx3
+
+# set the verticle class name and the jar file
+ENV VERTICLE_NAME io.vertx.blog.first.MyFirstVerticle
+
+# Set the location of the verticles
+ENV VERTICLE_HOME /usr/verticles
+ENV CLASSPATH "/usr/verticles/mariadb-java-client-1.5.5.jar:/usr/verticles/my-first-app-db-1.0-SNAPSHOT-fat.jar
+
+EXPOSE 8080
+
+# Launch the verticle
+# -cp : set classpath of jar file
+WORKDIR $VERTICLE_HOME
+ENTRYPOINT ["sh", "-c"]
+CMD ["exec vertx run $VERTICLE_NAME --conf $VERTICLE_HOME/my-application-conf.json"]
+```
+
+### 2) docker run에서 -v 옵션 추가
+- $VERTICLE_HOME에 필요한 파일을 특정 directory에 복사한다.
+```
+ > mkdir verticle_data
+ > cp 01.vertx-apps/target/my-first-app-db-1.0-SNAPSHOT-fat.jar ./verticle_data
+ > cp 01.vertx-apps/src/main/conf/my-application-conf.json ./verticle_data
+ > cp 01.vertx-apps/lib/mariadb-java-client-1.5.5.jar ./verticle_data
+```
+
+- d
+ > docker build -t freepsw/vertx-java-var Dockerfile_var
+```
+```
+
+
+- docker run 실행
+```
+ > docker run -ti -p 8082:8082 -v /home/rts/apps/docker-vertx-mariadb:/usr/verticles --link some-mariadb freepsw/vertx-java-var
+```
