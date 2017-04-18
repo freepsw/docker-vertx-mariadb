@@ -1,0 +1,25 @@
+version: '2'
+services:
+  lb-vertx-maridb:
+    scale: 1
+    start_on_create: true
+    lb_config:
+      certs: []
+      port_rules:
+      - priority: 1
+        protocol: http
+        service: vertx-web
+        source_port: 8082
+        target_port: 8082
+    health_check:
+      response_timeout: 2000
+      healthy_threshold: 2
+      port: 42
+      unhealthy_threshold: 3
+      interval: 2000
+  vertx-web:
+    scale: 1
+    start_on_create: true
+  some-mariadb:
+    scale: 1
+    start_on_create: true

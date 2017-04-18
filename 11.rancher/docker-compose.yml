@@ -1,0 +1,34 @@
+version: '2'
+services:
+  lb-vertx-maridb:
+    image: rancher/lb-service-haproxy:v0.6.2
+    ports:
+    - 8082:8082/tcp
+    labels:
+      io.rancher.container.agent.role: environmentAdmin
+      io.rancher.container.create_agent: 'true'
+  vertx-web:
+    image: freepsw/vertx-java-var
+    stdin_open: true
+    volumes:
+    - /home/rts/apps/docker-vertx-mariadb/verticle_data:/usr/verticles
+    tty: true
+    links:
+    - some-mariadb:some-mariadb
+  some-mariadb:
+    image: mariadb
+    environment:
+      MYSQL_USER: root
+      MYSQL_DATABASE: test_db
+      MYSQL_ROOT_PASSWORD: my-secret-pw
+    stdin_open: true
+    volumes:
+    - /home/rts/apps/docker-vertx-mariadb/verticle_data/dump:/docker-entrypoint-initdb.d
+    tty: true
+    ports:
+    - 3306:3306/tcp
+    command:
+    - mysqld
+    - --innodb-buffer-pool-size=20M
+    labels:
+      io.rancher.container.pull_image: always

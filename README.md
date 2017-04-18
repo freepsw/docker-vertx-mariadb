@@ -239,7 +239,7 @@ CMD ["exec vertx run $VERTICLE_NAME --conf $VERTICLE_HOME/my-application-conf.js
 - docker image를 build한다.
 
 ```
- >  >  docker build -t freepsw/vertx-java-var -f Dockerfile_var .
+ >  docker build -t freepsw/vertx-java-var -f Dockerfile_var .
 ```
 
 - docker run 실행
