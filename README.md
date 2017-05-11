@@ -1,13 +1,28 @@
 # Deploy vert.x apps and mariadb
+- container 가상화(docker)를 이용하여 micro service를 빠르고 쉽게 배포하는 3가지 방법을 가이드
+- 전체 서비스의 구성을 간략하게 설명하면...
+ * mariadb 설치 및 서비스 구동 (필요한 database & table 생성)
+ * vertx web application 설치 및 구동
+ * load balancer 설치 및 vertx와 연결
 
-## 1. Vert.x apps
+##  위의 구성을 3가지 방식으로 배포
+### 1안) docker command line을 이용하여 배포
+- 아래 내용 참고
+### 2안) docker-compose를 이용한 배포
+- https://github.com/freepsw/docker-vertx-mariadb/tree/master/10.docker_compose 참고
+### 3안) rancher를 이용한 배포
+- https://github.com/freepsw/docker-vertx-mariadb/tree/master/11.rancher 참고 
+
+
+## 1안) Docker command line을 이용한 배포
+### 1. Vert.x apps
  - http://vertx.io/blog/using-the-asynchronous-sql-client/ 참고
  - Change
   * HSQL --> Mariadb 10.1.22
  - 변경된 소스 : 01.vertx-apps
 
 
-## 2. Deploy mariadb container using docker
+### 2. Deploy mariadb container using docker
  - https://hub.docker.com/r/_/mariadb/ 참고
  ```
  # 1) mariadb container 배포 (3306 port open) -> SQuirrelSQL로 조회하는 용도
@@ -31,8 +46,8 @@
  MariaDB [(none)]>
  ```
 
-## 3. Deploy vertx apps container using docker
-### 3.0) Prerequisit
+### 3. Deploy vertx apps container using docker
+#### 3.0) Prerequisit
  ```
  > cd ~
  > git clone https://github.com/freepsw/docker-vertx-mariadb.git
@@ -46,7 +61,7 @@
  > wget https://downloads.mariadb.com/Connectors/java/connector-java-1.5.5/mariadb-java-client-1.5.5.jar -P ./lib
  ```
 
-### 3.1) Build vertx-apps docker image
+#### 3.1) Build vertx-apps docker image
  - http://vertx.io/docs/vertx-docker/ 참고
  - Dockerfile 내용 확인 (변경하고자 하는 설정이 있을 경우변경)
  ```
@@ -83,7 +98,7 @@
  > docker images
  ```
 
-### 3-2) Run Docker image
+#### 3-2) Run Docker image
  - Docker container를 실행하는 방법은 크게 2가지가 있다.
  - foregroud 방식
    * docker run으로 실행하면서, container로 바로 접속함.
@@ -108,9 +123,9 @@
 
  ```
 
-### 3-3).  Vert.x configuration
+#### 3-3).  Vert.x configuration
 
-####  Log Properties (logging.properties)
+#####  Log Properties (logging.properties)
   - log configuration 위치
    * src/main/resources/vertx-default-jul-logging.properties
   - 주요 설정 파라미터
@@ -142,26 +157,26 @@
   }
   ```
 
-## 4. Check using web browser
+### 4. Check using web browser
  - connnect to http://<ip>:8082/assets
 
 
 
 
-# Etc
+## Etc
 
 
-## 1. Database import to Mariadb container when container initialized
+### 1. Database import to Mariadb container when container initialized
 - 많은 경우 application에 필요한 메타정보가 db에 저장되어 있어야 한다.
 - 따라서 db container가 구동되는 시점에 해당 정보를 함께 db에 import하도록 함.
 
-### 1) Dump database to file
+#### 1) Dump database to file
 - Container에 import될 database를 dump하여 파일로 저장
  ```
  > mysqldump -uroot -pmy-secret-pw test_db > test_db.sql
  ```
 
-### 2) Copy dump file(test_db.sql) to localhost
+#### 2) Copy dump file(test_db.sql) to localhost
 - container에서 dump한 test_db.sql 파일을 lcoal directory로 복사한다.
  ```
  # container id 조회
@@ -174,7 +189,7 @@
  > docker cp a9ea3800efd7:/root/test_db.sql /home/rts/apps/docker-vertx-mariadb/verticle_data
  ```
 
-### 3) Import dump file(test_db.sql) into maridb when maridb is initialized
+#### 3) Import dump file(test_db.sql) into maridb when maridb is initialized
  ```
  # 만약 database를 생성해야 한다면,
  # MYSQL_DATABASE 변수에 생성할 database명을 입력한다. (여기서는 test_db가 database명)
@@ -183,14 +198,14 @@
 
 
 
-## 2. vert.x application 변경시 docker build 없이 docker run
+### 2. vert.x application 변경시 docker build 없이 docker run
 - vert.x jar , config.json 파일이 docker image에 포함되어 있어서 변경시 docker image를 다시 빌드해야 함.
 - 운영상황에서는 이 방식이 깔끔하고, 사용자의 실수가 없는 방식인데,
 - 테스트 단계에서는 수많은 변경사항이 발생하게 된다. (결국 docker build가 너무 많이 발생, 시간 소요)
 - 그래서 자주 변경되는 file(.jar, .json ...)을 local directory에서 읽어오도록 변경
 - docker volum option 사용
 
-### 1) 새로운 Dockerfile 생성 (Dockerfile_var)
+#### 1) 새로운 Dockerfile 생성 (Dockerfile_var)
 - Dockerfile 에서 .jar/.json를 읽어오는 부분을 제거
 - $VERTICLE_HOME의 경로에 있어야 할 파일들을 확인힌다. (jar, json, lib)
 ```
@@ -217,7 +232,7 @@ ENTRYPOINT ["sh", "-c"]
 CMD ["exec vertx run $VERTICLE_NAME --conf $VERTICLE_HOME/my-application-conf.json"]
 ```
 
-### 2) docker run에서 -v 옵션 추가
+#### 2) docker run에서 -v 옵션 추가
 - $VERTICLE_HOME에 필요한 파일을 특정 directory에 복사한다.
 ```
  > mkdir verticle_data
