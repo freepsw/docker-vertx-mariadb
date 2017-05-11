@@ -9,7 +9,7 @@ ENV VERTICLE_JDBC_FILE 01.vertx-apps/lib/mariadb-java-client-1.5.5.jar
 
 # Set the location of the verticles
 ENV VERTICLE_HOME /usr/verticles
-ENV CLASSPATH "/usr/verticles/mariadb-java-client-1.5.5.jar:/usr/verticles/my-first-app-db-1.0-SNAPSHOT-fat.jar
+#ENV CLASSPATH "/usr/verticles/mariadb-java-client-1.5.5.jar:/usr/verticles/my-first-app-db-1.0-SNAPSHOT-fat.jar
 
 EXPOSE 8082
 
@@ -22,4 +22,4 @@ COPY $VERTICLE_JDBC_FILE $VERTICLE_HOME/
 # -cp : set classpath of jar file
 WORKDIR $VERTICLE_HOME
 ENTRYPOINT ["sh", "-c"]
-CMD ["exec vertx run $VERTICLE_NAME --conf $VERTICLE_HOME/my-application-conf.json"]
+CMD ["exec vertx run $VERTICLE_NAME --cp $VERTICLE_HOME/* --conf $VERTICLE_HOME/my-application-conf.json"]

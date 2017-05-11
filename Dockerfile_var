@@ -8,7 +8,7 @@ ENV VERTICLE_NAME io.vertx.blog.first.MyFirstVerticle
 ENV VERTICLE_HOME /usr/verticles
 ENV CLASSPATH $VERTICLE_HOME/mariadb-java-client-1.5.5.jar:$VERTICLE_HOME/my-first-app-db-1.0-SNAPSHOT-fat.jar
 
-EXPOSE 8080
+EXPOSE 8082
 
 # Launch the verticle
 # -cp : set classpath of jar file

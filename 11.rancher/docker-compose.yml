@@ -8,7 +8,7 @@ services:
       io.rancher.container.agent.role: environmentAdmin
       io.rancher.container.create_agent: 'true'
   vertx-web:
-    image: freepsw/vertx-java-var
+    image: core/verticle
     stdin_open: true
     volumes:
     - /home/rts/apps/docker-vertx-mariadb/verticle_data:/usr/verticles
