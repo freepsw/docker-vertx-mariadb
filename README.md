@@ -7,11 +7,14 @@
 
 ##  위의 구성을 3가지 방식으로 배포
 ### 1안) docker command line을 이용하여 배포
-- 아래 내용 참고
+- https://github.com/freepsw/docker-vertx-mariadb#1안-docker-command-line을-이용한-배포 참고
 ### 2안) docker-compose를 이용한 배포
 - https://github.com/freepsw/docker-vertx-mariadb/tree/master/10.docker_compose 참고
 ### 3안) rancher를 이용한 배포
-- https://github.com/freepsw/docker-vertx-mariadb/tree/master/11.rancher 참고 
+- https://github.com/freepsw/docker-vertx-mariadb/tree/master/11.rancher 참고
+
+
+
 
 
 ## 1안) Docker command line을 이용한 배포
